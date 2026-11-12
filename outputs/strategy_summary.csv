@@ -1,0 +1,4 @@
+strategy,p50_weeks,p80_weeks,on_time_prob,p50_cost_per_tool,p80_cost_per_tool,savings_vs_baseline,bottleneck_trade,bottleneck_util,on_time_plus_hookup_crews,on_time_half_handoff
+Single general contractor,19.1,19.3,0.982,30777,31025,0.0,electrician,0.78,0.988,0.994
+Direct multi-trade contracting,19.6,19.8,0.265,27351,27571,0.1113,electrician,0.759,0.469,0.881
+Regional trade alliance,19.2,19.4,0.883,26483,26697,0.1395,electrician,0.774,0.911,0.982

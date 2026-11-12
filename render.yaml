@@ -1,0 +1,8 @@
+# Render Blueprint: connect the repo in the Render dashboard (New > Blueprint) and it deploys this.
+services:
+  - type: web
+    name: tool-install-sim
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true

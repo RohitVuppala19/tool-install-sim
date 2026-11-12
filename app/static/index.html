@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tool Install Simulator</title>
+  <meta name="description" content="Monte Carlo simulator comparing contracting strategies for a 50-tool semiconductor fab install program on cost and schedule risk.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232a78d6'/%3E%3Cpath d='M8 22l5-6 4 3 7-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <h1>Tool Install Simulator</h1>
+        <p class="lede">Which way of contracting a fab tool install hits the date with the most confidence, at the lowest cost?</p>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="btn ghost" id="share-btn" title="Copy a link to this scenario">Copy link</button>
+        <button type="button" class="btn ghost icon" id="theme-btn" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel inputs" aria-label="Scenario inputs">
+      <form id="form" novalidate>
+        <div id="fields"></div>
+        <div class="form-actions">
+          <button type="submit" class="btn primary" id="run-btn">Run simulation</button>
+          <button type="button" class="btn" id="reset-btn">Reset to defaults</button>
+        </div>
+        <p class="hint" id="autorun-hint">Results update automatically as you edit.</p>
+      </form>
+    </aside>
+
+    <section class="results" id="results" aria-live="polite">
+      <div class="error" id="error" hidden></div>
+
+      <p class="meta" id="meta">Running simulation…</p>
+
+      <div class="recommend card" id="recommend" hidden></div>
+
+      <div class="cards" id="cards"></div>
+
+      <article class="card chart-card">
+        <div class="card-head">
+          <div>
+            <h2 id="dist-title">Chance every tool is qualified by week</h2>
+            <p class="sub" id="dist-sub">Share of simulated runs finished by each week. The dashed line is the commitment.</p>
+          </div>
+          <div class="seg" role="tablist" aria-label="Chart view">
+            <button type="button" role="tab" aria-selected="true" data-view="cdf">Cumulative</button>
+            <button type="button" role="tab" aria-selected="false" data-view="hist">Distribution</button>
+          </div>
+        </div>
+        <ul class="legend" id="legend-dist"></ul>
+        <div class="chart-box tall"><canvas id="chart-dist" role="img" aria-label="Completion curves by strategy"></canvas></div>
+      </article>
+
+      <div class="two-up">
+        <article class="card chart-card">
+          <div class="card-head">
+            <div>
+              <h2>Cost vs. schedule</h2>
+              <p class="sub">80th-percentile weeks and cost per tool. Lower-left is better.</p>
+            </div>
+          </div>
+          <ul class="legend" id="legend-tradeoff"></ul>
+          <div class="chart-box"><canvas id="chart-tradeoff" role="img" aria-label="Cost versus schedule scatter"></canvas></div>
+        </article>
+        <article class="card chart-card">
+          <div class="card-head">
+            <div>
+              <h2>Crew utilization by trade</h2>
+              <p class="sub">Average share of available crew time spent working. The busiest trade is the bottleneck.</p>
+            </div>
+          </div>
+          <ul class="legend" id="legend-util"></ul>
+          <div class="chart-box"><canvas id="chart-util" role="img" aria-label="Crew utilization bars"></canvas></div>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>Recovery levers</h2>
+            <p class="sub">What lifts each strategy's on-time chance more: one extra electrician and pipefitter crew, or halving the handoff gap between trades?</p>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="levers-table"></table></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2>All results</h2>
+            <p class="sub" id="table-sub"></p>
+          </div>
+          <button type="button" class="btn" id="csv-btn">Download CSV</button>
+        </div>
+        <div class="table-wrap"><table id="results-table"></table></div>
+      </article>
+
+      <details class="card about">
+        <summary><h2>How the model works</h2></summary>
+        <div class="about-body">
+          <p>Each tool goes through <strong>rigging and setting</strong>, then <strong>electrical hookup</strong> and <strong>process piping</strong> in parallel, then <strong>closeout</strong> and <strong>qualification</strong>. A task starts when its predecessors finish, plus a handoff delay, and a crew of the right trade is free.</p>
+          <p>Every run draws task durations from a right-skewed triangular multiplier on planned hours, late OEM deliveries, and handoff gaps. Actual craft hours are priced at burdened wages, foreman supervision is added, then the strategy's markup is applied.</p>
+          <div class="table-wrap"><table id="tasks-table"></table></div>
+          <h3>Sources</h3>
+          <ul class="sources">
+            <li><strong>Wages:</strong> BLS OEWS mean hourly wages, Boise City, ID MSA, May 2025. Millwright uses May 2023, the latest Boise figure published.</li>
+            <li><strong>Labor burden:</strong> BLS ECEC, June 2026, construction and extraction occupations.</li>
+            <li><strong>Contractor overhead and profit:</strong> Buildern, <em>Typical Contractor Overhead and Profit</em>, 2026.</li>
+            <li><strong>Planning assumptions:</strong> craft hours, crew sizes, handoff delays, delivery slip and duration risk. Replace them with contractor bids or historical install records.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
